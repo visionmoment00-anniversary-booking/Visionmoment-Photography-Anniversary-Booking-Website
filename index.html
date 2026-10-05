@@ -103,7 +103,7 @@ footer{background:var(--dark);color:#d9ddd9;text-align:center;padding:35px 20px;
 
       <div class="full">
         <label for="story">Tell us about the anniversary</label>
-        <textarea id="story" placeholder="For example: your anniversary year, the kind of mood you want, a special idea, surprise, preferred location or anything you'd like us to know."></textarea>
+        <textarea id="anniversaryStory" placeholder="For example: your anniversary year, the kind of mood you want, a special idea, surprise, preferred location or anything you'd like us to know."></textarea>
       </div>
 
       <div class="full">
@@ -160,7 +160,7 @@ form.addEventListener('submit', function(e){
     pkg,
     location: document.getElementById('location').value,
     outfits: document.getElementById('outfits').value,
-    story: document.getElementById('story').value.trim(),
+    story: document.getElementById('anniversaryStory').value.trim(),
     notes: document.getElementById('notes').value.trim()
   };
 
