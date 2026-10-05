@@ -36,7 +36,7 @@ footer{background:var(--dark);color:#d9ddd9;text-align:center;padding:35px 20px;
 <header class="hero">
   <div class="small">Visionmoment Photography · Accra, Ghana</div>
   <h1>Let's Create<br>Your Anniversary Story.</h1>
-  <p>Complete the form below and send your booking request directly to Visionmoment on WhatsApp. Your date is only confirmed after your booking deposit is received.</p>
+  <p>Complete the form below, review your booking details, then send your request directly to Visionmoment on WhatsApp. Your date is only confirmed after your booking deposit is received.</p>
 </header>
 
 <main class="wrap" id="booking">
@@ -116,8 +116,8 @@ footer{background:var(--dark);color:#d9ddd9;text-align:center;padding:35px 20px;
       </div>
 
       <div class="full">
-        <button type="submit">Send Booking Request via WhatsApp</button>
-        <div id="notice" class="notice"></div>
+        <button type="submit">Review &amp; Send via WhatsApp</button>
+        <div id="notice" class="notice" aria-live="polite"></div>
       </div>
     </div>
   </form>
@@ -136,24 +136,35 @@ footer{background:var(--dark);color:#d9ddd9;text-align:center;padding:35px 20px;
 </footer>
 
 <script>
-const form=document.getElementById('bookingForm');
-form.addEventListener('submit',function(e){
+const form = document.getElementById('bookingForm');
+const notice = document.getElementById('notice');
+
+form.addEventListener('submit', function(e){
   e.preventDefault();
-  const pkg=document.querySelector('input[name="package"]:checked')?.value || '';
-  const data={
-    name:document.getElementById('name').value.trim(),
-    phone:document.getElementById('phone').value.trim(),
-    email:document.getElementById('email').value.trim(),
-    date:document.getElementById('anniversary').value,
-    time:document.getElementById('time').value,
-    people:document.getElementById('people').value,
+
+  const pkg = document.querySelector('input[name="package"]:checked')?.value || '';
+
+  if (!pkg) {
+    notice.innerHTML = 'Please choose a collection before continuing.';
+    notice.classList.add('show');
+    return;
+  }
+
+  const data = {
+    name: document.getElementById('name').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    date: document.getElementById('anniversary').value,
+    time: document.getElementById('time').value,
+    people: document.getElementById('people').value,
     pkg,
-    location:document.getElementById('location').value,
-    outfits:document.getElementById('outfits').value,
-    story:document.getElementById('story').value.trim(),
-    notes:document.getElementById('notes').value.trim()
+    location: document.getElementById('location').value,
+    outfits: document.getElementById('outfits').value,
+    story: document.getElementById('story').value.trim(),
+    notes: document.getElementById('notes').value.trim()
   };
-  const msg=`Hello Visionmoment, I'd like to make an anniversary photography booking.
+
+  const msg = `Hello Visionmoment, I'd like to make an anniversary photography booking.
 
 *CLIENT DETAILS*
 Name: ${data.name}
@@ -175,11 +186,36 @@ ${data.story || 'Not provided'}
 ${data.notes || 'None'}
 
 I understand this is a booking request and that the date is confirmed after availability is checked and the 50% booking deposit is paid.`;
-  const url='https://wa.me/233256373583?text='+encodeURIComponent(msg);
-  const notice=document.getElementById('notice');
-  notice.innerHTML='Your booking request is ready. WhatsApp will open so you can send it directly to Visionmoment.';
+
+  const url = 'https://wa.me/233256373583?text=' + encodeURIComponent(msg);
+
+  notice.innerHTML = `
+    <strong>Your booking is ready.</strong><br>
+    We’re opening WhatsApp with your booking details already filled in.
+    <br><br>
+    <a href="${url}" target="_blank" rel="noopener" style="display:inline-block;padding:10px 14px;background:#b18a55;color:#fff;text-decoration:none;">
+      Open WhatsApp &amp; Send Request
+    </a>
+    <br><small style="display:block;margin-top:9px;color:#69716d;">
+      If WhatsApp does not open automatically, tap the button above.
+    </small>
+  `;
   notice.classList.add('show');
-  window.open(url,'_blank');
+
+  const whatsappWindow = window.open(url, '_blank', 'noopener,noreferrer');
+
+  if (!whatsappWindow) {
+    notice.innerHTML = `
+      <strong>Your booking is ready.</strong><br>
+      Your browser blocked the automatic WhatsApp window.
+      <br><br>
+      <a href="${url}" target="_blank" rel="noopener" style="display:inline-block;padding:10px 14px;background:#b18a55;color:#fff;text-decoration:none;">
+        Open WhatsApp &amp; Send Request
+      </a>
+    `;
+  }
+
+  notice.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 </script>
 </body>
