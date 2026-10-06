@@ -93,7 +93,7 @@ footer{background:var(--dark);color:#d9ddd9;text-align:center;padding:35px 20px;
           <div class="summary-row summary-total"><span>Total Package Price</span><strong id="summaryTotal">GH₵0</strong></div>
           <div class="summary-row summary-deposit"><span>50% Booking Deposit</span><strong id="summaryDeposit">GH₵0</strong></div>
           <div class="summary-row"><span>Remaining Balance</span><strong id="summaryBalance">GH₵0</strong></div>
-          <div class="payment-prep"><strong>Payment:</strong> Paystack payment will be enabled here after Visionmoment's Paystack account review is completed. For now, the booking request continues through WhatsApp.</div>
+          <div class="payment-prep"><strong>Payment:</strong> A 50% booking deposit will be paid securely through Paystack after you submit your booking request.</div>
         </div>
       </div>
 
@@ -130,7 +130,7 @@ footer{background:var(--dark);color:#d9ddd9;text-align:center;padding:35px 20px;
       </div>
 
       <div class="full">
-        <button type="submit">Review &amp; Send via WhatsApp</button>
+        <button type="submit">Book &amp; Pay 50% Deposit</button>
         <div id="notice" class="notice" aria-live="polite"></div>
       </div>
     </div>
@@ -149,7 +149,9 @@ footer{background:var(--dark);color:#d9ddd9;text-align:center;padding:35px 20px;
   © 2026 Visionmoment. All rights reserved.
 </footer>
 
+<script src="https://js.paystack.co/v2/inline.js"></script>
 <script>
+const PAYSTACK_PUBLIC_KEY = 'pk_live_fa6b72f4304923e9c25a535e7896cf3150e8ce65';
 const form = document.getElementById('bookingForm');
 const notice = document.getElementById('notice');
 const packagePrices = {"The Moment":1500,"The Story":2300,"The Legacy":4500};
@@ -185,24 +187,72 @@ updateBookingSummary();
 form.addEventListener('submit', function(e){
   e.preventDefault();
 
-  const pkg = document.querySelector('input[name="package"]:checked')?.value || '';
+  if (!form.reportValidity()) return;
 
-  if (!pkg) {
+  const selected = document.querySelector('input[name="package"]:checked');
+  if (!selected) {
     notice.innerHTML = 'Please choose a collection before continuing.';
     notice.classList.add('show');
     return;
   }
 
+  const pkg = selected.value;
   const packageName = pkg.split(' — ')[0];
-  const packagePrice = packagePrices[packageName] || 0;
-  const deposit = packagePrice * 0.50;
+  const packagePrice = Number(selected.dataset.price) || packagePrices[packageName] || 0;
+  const deposit = Math.round(packagePrice * 0.50);
   const balance = packagePrice - deposit;
 
   const data = {
-    name: document.getElementById('name').value.trim(), phone: document.getElementById('phone').value.trim(), email: document.getElementById('email').value.trim(), date: document.getElementById('anniversary').value, time: document.getElementById('time').value, people: document.getElementById('people').value, pkg, packagePrice, deposit, balance, location: document.getElementById('location').value, outfits: document.getElementById('outfits').value, story: document.getElementById('story').value.trim(), notes: document.getElementById('notes').value.trim()
+    name: document.getElementById('name').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    date: document.getElementById('anniversary').value,
+    time: document.getElementById('time').value,
+    people: document.getElementById('people').value,
+    pkg,
+    packagePrice,
+    deposit,
+    balance,
+    location: document.getElementById('location').value,
+    outfits: document.getElementById('outfits').value,
+    story: document.getElementById('story').value.trim(),
+    notes: document.getElementById('notes').value.trim()
   };
 
-  const msg = `Hello Visionmoment, I'd like to make an anniversary photography booking.
+  const reference = 'VM-' + Date.now();
+
+  notice.innerHTML = `
+    <strong>Opening Paystack…</strong><br>
+    You are about to pay ${formatGHS(data.deposit)} as your 50% booking deposit.
+  `;
+  notice.classList.add('show');
+
+  const paystack = new Paystack();
+  paystack.checkout({
+    key: PAYSTACK_PUBLIC_KEY,
+    email: data.email || 'visionmoment00@gmail.com',
+    amount: data.deposit * 100,
+    currency: 'GHS',
+    ref: reference,
+    metadata: {
+      custom_fields: [
+        { display_name: 'Client Name', variable_name: 'client_name', value: data.name },
+        { display_name: 'WhatsApp Number', variable_name: 'whatsapp_number', value: data.phone },
+        { display_name: 'Anniversary Date', variable_name: 'anniversary_date', value: data.date },
+        { display_name: 'Preferred Time', variable_name: 'preferred_time', value: data.time },
+        { display_name: 'Collection', variable_name: 'collection', value: packageName },
+        { display_name: 'Package Price', variable_name: 'package_price', value: formatGHS(data.packagePrice) },
+        { display_name: 'Booking Deposit', variable_name: 'booking_deposit', value: formatGHS(data.deposit) },
+        { display_name: 'Location', variable_name: 'location', value: data.location },
+        { display_name: 'Looks', variable_name: 'looks', value: data.outfits }
+      ]
+    },
+    onSuccess: function(transaction) {
+      const msg = `Hello Visionmoment, my anniversary booking deposit has been paid successfully.
+
+*PAYMENT CONFIRMATION*
+Transaction Reference: ${transaction.reference || reference}
+Payment Status: Successful
 
 *CLIENT DETAILS*
 Name: ${data.name}
@@ -215,7 +265,7 @@ Preferred time: ${data.time}
 People: ${data.people}
 Collection: ${data.pkg}
 Package Price: ${formatGHS(data.packagePrice)}
-50% Booking Deposit: ${formatGHS(data.deposit)}
+50% Booking Deposit Paid: ${formatGHS(data.deposit)}
 Remaining Balance: ${formatGHS(data.balance)}
 Location: ${data.location}
 Looks: ${data.outfits}
@@ -226,37 +276,40 @@ ${data.story || 'Not provided'}
 *ADDITIONAL REQUESTS*
 ${data.notes || 'None'}
 
-I understand this is a booking request and that the date is confirmed after availability is checked and the 50% booking deposit is paid.`;
+Please confirm receipt of my payment and the booking details.`;
 
-  const url = 'https://wa.me/233256373583?text=' + encodeURIComponent(msg);
+      const url = 'https://wa.me/233256373583?text=' + encodeURIComponent(msg);
 
-  notice.innerHTML = `
-    <strong>Your booking is ready.</strong><br>
-    We’re opening WhatsApp with your booking details already filled in.
-    <br><br>
-    <a href="${url}" target="_blank" rel="noopener" style="display:inline-block;padding:10px 14px;background:#b18a55;color:#fff;text-decoration:none;">
-      Open WhatsApp &amp; Send Request
-    </a>
-    <br><small style="display:block;margin-top:9px;color:#69716d;">
-      If WhatsApp does not open automatically, tap the button above.
-    </small>
-  `;
-  notice.classList.add('show');
+      notice.innerHTML = `
+        <strong>Deposit payment successful.</strong><br>
+        Reference: ${transaction.reference || reference}<br>
+        We’re opening WhatsApp with your booking details so Visionmoment can confirm your booking.
+        <br><br>
+        <a href="${url}" target="_blank" rel="noopener" style="display:inline-block;padding:10px 14px;background:#b18a55;color:#fff;text-decoration:none;">
+          Send Booking Details on WhatsApp
+        </a>
+      `;
 
-  const whatsappWindow = window.open(url, '_blank', 'noopener,noreferrer');
+      const whatsappWindow = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!whatsappWindow) {
+        notice.innerHTML += `
+          <br><small style="display:block;margin-top:9px;color:#69716d;">
+            If WhatsApp did not open automatically, tap the button above.
+          </small>
+        `;
+      }
 
-  if (!whatsappWindow) {
-    notice.innerHTML = `
-      <strong>Your booking is ready.</strong><br>
-      Your browser blocked the automatic WhatsApp window.
-      <br><br>
-      <a href="${url}" target="_blank" rel="noopener" style="display:inline-block;padding:10px 14px;background:#b18a55;color:#fff;text-decoration:none;">
-        Open WhatsApp &amp; Send Request
-      </a>
-    `;
-  }
-
-  notice.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      notice.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    },
+    onCancel: function() {
+      notice.innerHTML = `
+        <strong>Payment cancelled.</strong><br>
+        Your booking has not been confirmed. You can try the payment again when you're ready.
+      `;
+      notice.classList.add('show');
+      notice.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
 });
 </script>
 </body>
