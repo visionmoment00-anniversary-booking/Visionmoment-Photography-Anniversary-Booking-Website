@@ -19,7 +19,8 @@ label{display:block;font:12px Arial,sans-serif;text-transform:uppercase;letter-s
 .required{color:#9b6e39}.packages{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.package{position:relative}.package input{position:absolute;opacity:0}.package label{cursor:pointer;text-transform:none;letter-spacing:0;font-family:Georgia,serif;font-size:17px;background:#faf7f0;border:1px solid var(--line);padding:18px;display:block;height:100%}.package label span{display:block;font:bold 20px Arial,sans-serif;margin-bottom:3px}.package label small{font:12px Arial,sans-serif;color:var(--muted)}.package input:checked+label{border:2px solid var(--gold);background:#f7f0e4}
 .check{display:flex;align-items:flex-start;gap:10px;font:13px Arial,sans-serif;color:var(--muted);text-transform:none;letter-spacing:0}.check input{width:auto;margin-top:4px}
 button{border:0;background:var(--gold);color:#fff;padding:16px 25px;font:13px Arial,sans-serif;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;width:100%;margin-top:8px}button:hover{opacity:.9}
-.notice{display:none;margin-top:18px;padding:15px;background:#eef3ee;border:1px solid #c9d4ca;font:13px Arial,sans-serif}.notice.show{display:block}
+.notice{display:none;margin-top:18px;padding:15px;background:#eef3ee;border:1px solid #c9d4ca;font:13px Arial,sans-serif}.notice.show{display:block}.booking-summary{display:none;background:#f7f0e4;border:1px solid var(--gold);padding:24px;margin-top:8px}.booking-summary.show{display:block}.booking-summary h3{font-size:24px;font-weight:400;margin:0 0 16px}.summary-row{display:flex;justify-content:space-between;gap:20px;padding:9px 0;border-bottom:1px solid rgba(177,138,85,.25);font:14px Arial,sans-serif}.summary-row:last-child{border-bottom:0}.summary-total{font-size:18px!important;padding-top:14px!important}.summary-deposit{font-size:20px!important;font-weight:bold}.payment-prep{margin-top:14px;padding:12px 14px;background:#fff;border:1px solid var(--line);font:12px Arial,sans-serif;color:var(--muted)}
+
 .details{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:35px}.detail{padding:22px;background:#fff;border:1px solid var(--line)}.detail h3{font-size:20px;font-weight:400;margin:0 0 7px}.detail p{font:13px Arial,sans-serif;color:var(--muted);margin:0}
 footer{background:var(--dark);color:#d9ddd9;text-align:center;padding:35px 20px;font:12px Arial,sans-serif}
 @media(max-width:760px){.grid,.packages,.details{grid-template-columns:1fr}.full{grid-column:auto}form{padding:25px}.nav a{display:none}.hero{padding:65px 20px}}
@@ -103,13 +104,15 @@ footer{background:var(--dark);color:#d9ddd9;text-align:center;padding:35px 20px;
 
       <div class="full">
         <label for="story">Tell us about the anniversary</label>
-        <textarea id="anniversaryStory" placeholder="For example: your anniversary year, the kind of mood you want, a special idea, surprise, preferred location or anything you'd like us to know."></textarea>
+        <textarea id="story" placeholder="For example: your anniversary year, the kind of mood you want, a special idea, surprise, preferred location or anything you'd like us to know."></textarea>
       </div>
 
       <div class="full">
         <label for="notes">Additional Requests</label>
         <textarea id="notes" placeholder="Photo book, Reel, makeup, special set design, prints, surprise setup, etc."></textarea>
       </div>
+
+      <div class="full"><div id="bookingSummary" class="booking-summary" aria-live="polite"><h3>Your Booking Summary</h3><div class="summary-row"><span>Collection</span><strong id="summaryPackage">—</strong></div><div class="summary-row summary-total"><span>Total Package Price</span><strong id="summaryTotal">GH₵0</strong></div><div class="summary-row summary-deposit"><span>50% Booking Deposit</span><strong id="summaryDeposit">GH₵0</strong></div><div class="summary-row"><span>Remaining Balance</span><strong id="summaryBalance">GH₵0</strong></div><div class="payment-prep"><strong>Payment:</strong> Paystack payment will be enabled here after Visionmoment's Paystack account review is completed. For now, the booking request continues through WhatsApp.</div></div></div>
 
       <div class="full">
         <label class="check"><input type="checkbox" id="agree" required> I understand that this is a booking request and my date is not confirmed until Visionmoment confirms availability and the required 50% booking deposit is paid.</label>
@@ -138,6 +141,11 @@ footer{background:var(--dark);color:#d9ddd9;text-align:center;padding:35px 20px;
 <script>
 const form = document.getElementById('bookingForm');
 const notice = document.getElementById('notice');
+const packagePrices = {"The Moment":1500,"The Story":2300,"The Legacy":4500};
+function formatGHS(amount){return 'GH₵'+amount.toLocaleString('en-GH');}
+function updateBookingSummary(){const selected=document.querySelector('input[name="package"]:checked');const summary=document.getElementById('bookingSummary');if(!selected){summary.classList.remove('show');return;}const packageName=selected.value.split(' — ')[0];const total=packagePrices[packageName]||0;const deposit=total*0.5;const balance=total-deposit;document.getElementById('summaryPackage').textContent=packageName;document.getElementById('summaryTotal').textContent=formatGHS(total);document.getElementById('summaryDeposit').textContent=formatGHS(deposit);document.getElementById('summaryBalance').textContent=formatGHS(balance);summary.classList.add('show');}
+document.querySelectorAll('input[name="package"]').forEach(function(input){input.addEventListener('change',updateBookingSummary);});
+
 
 form.addEventListener('submit', function(e){
   e.preventDefault();
@@ -150,18 +158,13 @@ form.addEventListener('submit', function(e){
     return;
   }
 
+  const packageName = pkg.split(' — ')[0];
+  const packagePrice = packagePrices[packageName] || 0;
+  const deposit = packagePrice * 0.50;
+  const balance = packagePrice - deposit;
+
   const data = {
-    name: document.getElementById('name').value.trim(),
-    phone: document.getElementById('phone').value.trim(),
-    email: document.getElementById('email').value.trim(),
-    date: document.getElementById('anniversary').value,
-    time: document.getElementById('time').value,
-    people: document.getElementById('people').value,
-    pkg,
-    location: document.getElementById('location').value,
-    outfits: document.getElementById('outfits').value,
-    story: document.getElementById('anniversaryStory').value.trim(),
-    notes: document.getElementById('notes').value.trim()
+    name: document.getElementById('name').value.trim(), phone: document.getElementById('phone').value.trim(), email: document.getElementById('email').value.trim(), date: document.getElementById('anniversary').value, time: document.getElementById('time').value, people: document.getElementById('people').value, pkg, packagePrice, deposit, balance, location: document.getElementById('location').value, outfits: document.getElementById('outfits').value, story: document.getElementById('story').value.trim(), notes: document.getElementById('notes').value.trim()
   };
 
   const msg = `Hello Visionmoment, I'd like to make an anniversary photography booking.
@@ -176,6 +179,9 @@ Date: ${data.date}
 Preferred time: ${data.time}
 People: ${data.people}
 Collection: ${data.pkg}
+Package Price: ${formatGHS(data.packagePrice)}
+50% Booking Deposit: ${formatGHS(data.deposit)}
+Remaining Balance: ${formatGHS(data.balance)}
 Location: ${data.location}
 Looks: ${data.outfits}
 
